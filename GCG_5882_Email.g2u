@@ -1,0 +1,413 @@
+Program.Sub.Preflight.Start
+v.Global.sLog.Declare
+v.Global.sFile.Declare
+v.Global.sToken.Declare
+
+f.Intrinsic.Control.CallSub("Check_And_Create_Custom_Folder")
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+
+	
+	'Process
+	f.Intrinsic.UI.InvokeWaitDialog("Sending Emails for yesterday Shipments...")
+	f.Intrinsic.String.Build("{1}{0}: Start Process...*******************************************************************",v.Ambient.Now,v.Ambient.NewLine,v.Global.sLog)
+	f.Intrinsic.Control.CallSub("Process")
+	f.Intrinsic.String.Build("{0}{1}{2}: End Processing",v.Global.sLog,v.Ambient.NewLine,v.Ambient.Now,v.Global.sLog)
+	f.Intrinsic.Control.CallSub("Write_Log","sMessage","")
+	f.Intrinsic.UI.CloseWaitDialog
+	f.Intrinsic.Control.CallSub("Unload")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_5882_Email.g2u {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	f.Intrinsic.Control.CallSub("Write_Log","sMessage",v.Local.sError)
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.Write_Log.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	v.Local.bEx.Declare
+	v.Local.sCurrentContent.Declare
+	v.Local.sFile.Declare
+
+	f.Intrinsic.Control.If(v.Args.sMessage.Trim,<>,"")
+		f.Intrinsic.String.Build("{0}{1}{2}: {3}",v.Global.sLog,v.Ambient.NewLine,v.Ambient.Now,v.Args.sMessage,v.Global.sLog)
+	f.Intrinsic.Control.EndIf
+	'Check file and write log
+	f.Intrinsic.File.Exists(v.Global.sFile,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx)
+		f.Intrinsic.File.File2String(v.Global.sFile,v.Local.sCurrentContent)
+		f.Intrinsic.String.Build("{0}{1}{2}",v.Local.sCurrentContent,v.Ambient.NewLine,v.Global.sLog,v.Global.sLog)
+	f.Intrinsic.Control.EndIf
+	f.Intrinsic.File.String2File(v.Global.sFile,v.Global.sLog)		
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_5882_Email.g2u {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	f.Intrinsic.String.Build("{0}{1}{2}",v.Global.sLog,v.Ambient.NewLine,v.Local.sError,v.Global.sLog)
+	f.Intrinsic.String.Build("{0}\Custom\5882\{1}\GAB Log\{2}_WriteLogError.txt",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Ambient.Now.FormatYYYYMMDDHHNNSS,v.Local.sFile)
+	f.Intrinsic.File.String2File(v.Local.sFile,v.Global.sLog)
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.Write_Log.End
+
+Program.Sub.UnLoad.Start
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.sSQL.Declare
+	v.Local.bEx.Declare
+	
+	'Close connection
+	F.Intrinsic.Control.If(V.ODBC.conx.State,=,1)
+		F.ODBC.Connection!conx.close
+	F.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.File.Exists(v.Global.sToken,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx)
+		f.Intrinsic.File.DeleteFile(v.Global.sToken)
+	f.Intrinsic.Control.EndIf
+	
+	'End
+	f.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.End	
+F.Intrinsic.Control.EndTry
+Program.Sub.UnLoad.End
+
+Program.Sub.Check_And_Create_Custom_Folder.Start
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.bExist.Declare
+	v.Local.sFile.Declare
+	v.Local.sDir.Declare
+	v.Local.sContent.Declare
+	
+	f.Intrinsic.String.Build("{0}\Custom",v.Caller.GlobalDir,v.Local.sDir)
+	f.Intrinsic.File.DirExists(v.Local.sDir,v.Local.bExist)
+	f.Intrinsic.Control.If(v.Local.bExist.Not)
+		f.Intrinsic.File.CreateDir(v.Local.sDir)
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.String.Build("{0}\Custom\5882",v.Caller.GlobalDir,v.Local.sDir)
+	f.Intrinsic.File.DirExists(v.Local.sDir,v.Local.bExist)
+	f.Intrinsic.Control.If(v.Local.bExist.Not)
+		f.Intrinsic.File.CreateDir(v.Local.sDir)
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.String.Build("{0}\Custom\5882\{1}",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sDir)
+	f.Intrinsic.File.DirExists(v.Local.sDir,v.Local.bExist)
+	f.Intrinsic.Control.If(v.Local.bExist.Not)
+		f.Intrinsic.File.CreateDir(v.Local.sDir)
+	f.Intrinsic.Control.EndIf	
+	
+	f.Intrinsic.String.Build("{0}\Custom\5882\{1}\GAB Log",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sDir)
+	f.Intrinsic.File.DirExists(v.Local.sDir,v.Local.bExist)
+	f.Intrinsic.Control.If(v.Local.bExist.Not)
+		f.Intrinsic.File.CreateDir(v.Local.sDir)
+	f.Intrinsic.Control.EndIf	
+	
+	f.Intrinsic.String.Build("{0}\Custom\5882\{1}\GAB Log\Task_{2}.txt",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Ambient.Date.FormatYYYYMMDD,v.Global.sFile)
+	
+	f.Intrinsic.String.Build("{0}\Custom\5882\{1}\Sender.txt",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sFile)
+	f.Intrinsic.File.Exists(v.Local.sFile,v.Local.bExist)
+	f.Intrinsic.Control.If(v.Local.bExist.Not)
+		f.Intrinsic.File.String2File(v.Local.sFile,"")
+	f.Intrinsic.Control.EndIf	
+	
+	f.Intrinsic.String.Build("{0}\Custom\5882\{1}\List.txt",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sFile)
+	f.Intrinsic.File.Exists(v.Local.sFile,v.Local.bExist)
+	f.Intrinsic.Control.If(v.Local.bExist.Not)
+		f.Intrinsic.File.String2File(v.Local.sFile,"")
+	f.Intrinsic.Control.EndIf	
+	
+	f.Intrinsic.String.Build("{0}\Custom\5882\{1}\Subject.txt",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sFile)
+	f.Intrinsic.File.Exists(v.Local.sFile,v.Local.bExist)
+	f.Intrinsic.Control.If(v.Local.bExist.Not)
+		f.Intrinsic.File.String2File(v.Local.sFile,"ASN - Order %Salesorder% - Shipped on %DateShipped% - PO %Customer PO%")
+	f.Intrinsic.Control.EndIf	
+
+	f.Intrinsic.String.Build("{0}\Custom\5882\{1}\Body.txt",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sFile)
+	f.Intrinsic.File.Exists(v.Local.sFile,v.Local.bExist)
+	f.Intrinsic.Control.If(v.Local.bExist.Not)
+		f.Intrinsic.String.Build("Thank you from Werk Brau, for your order it is on the way.{0}Sales Order: %Salesorder%{0}Ship Date: %DateShipped%{0}PO: %Customer PO%{0}Ship Via: %ShipVia%{0}Carrier: %Carrier%{0}Tracking: %Tracking Number%{0}Line:{0}%PN%  quantity: %Qty%",v.Ambient.NewLine,v.Local.sContent)
+		f.Intrinsic.File.String2File(v.Local.sFile,v.Local.sContent)
+	f.Intrinsic.Control.EndIf	
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_5882_Email.g2u {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	f.Intrinsic.String.Build("{0}{1}{2}",v.Global.sLog,v.Ambient.NewLine,v.Local.sError,v.Global.sLog)
+	f.Intrinsic.String.Build("{0}\{1}_{2}_Custom5882FolderError.txt",v.Caller.FilesDir,v.Caller.CompanyCode,v.Ambient.Now.FormatYYYYMMDDHHNNSS,v.Local.sFile)
+	f.Intrinsic.File.String2File(v.Local.sFile,v.Global.sLog)
+	f.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry	
+Program.Sub.Check_And_Create_Custom_Folder.End
+
+Program.Sub.Process.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	v.Local.iCnt.Declare
+	v.Local.sRet.Declare
+	v.Local.sFilter.Declare
+	v.Local.sSQL.Declare
+	v.Local.sNow.Declare
+	v.Local.dYesterday.Declare
+	v.Local.sMsg.Declare
+	v.Local.sResult.Declare
+	v.Local.bValid.Declare
+	v.Local.iInner.Declare
+	v.Local.sRecepient.Declare
+	v.Local.sOrder.Declare
+	v.Local.dDateShip.Declare
+	v.Local.sPO.Declare
+	v.Local.sShipVia.Declare
+	v.Local.sTracking.Declare
+	v.Local.sPart.Declare
+	v.Local.sQty.Declare
+	v.Local.bEx.Declare
+	v.Local.sSender.Declare
+	v.Local.sSender2.Declare
+	v.Local.bEmailAddressValid.Declare
+	v.Local.sReason.Declare
+	v.Local.sFile.Declare
+	v.Local.sContent.Declare
+	v.Local.sCustomer.Declare
+	v.Local.sCustomerLog.Declare
+	v.Local.sSubject.Declare
+	v.Local.sBody.Declare
+	v.Local.sPartDetail.Declare
+	v.Local.iUser.Declare
+	v.Local.sSuffix.Declare
+	v.Local.sCustomerPart.Declare
+	v.Local.sCarrier.Declare
+	v.Local.sMultiEmails.Declare
+	v.Local.i3.Declare
+	v.Local.sHold.Declare
+	
+	f.ODBC.Connection!conx.OpenCompanyConnection(180)
+
+	'Get the list of NoNeedEmail customers
+	f.Intrinsic.String.Build("{0}\Custom\5882\{1}\List.txt",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sFile)
+	f.Intrinsic.File.Exists(v.Local.sFile,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx)
+		f.Intrinsic.File.File2String(v.Local.sFile,v.Local.sContent)
+		f.Data.DataTable.CreateFromString("CNE",V.Local.sContent,"Customer","String","",";",True)
+		f.Data.DataTable.AddColumn("CNE","NeedEmail","Boolean",False)
+		f.Data.Dictionary.Exists("CNEDict",v.Local.bex)
+		f.Intrinsic.Control.If(v.Local.bEx)
+			f.Data.Dictionary.Close("CNEDict")
+		f.Intrinsic.Control.EndIf
+		f.Data.Dictionary.createFromDatatable("CNEDict","CNE","Customer","NeedEmail")
+		f.Data.Dictionary.SetDefaultReturn("CNEDict",True)
+		f.Data.DataTable.Close("CNE")
+	f.Intrinsic.Control.EndIf
+	
+	'Validate Sender Email Address
+	f.Intrinsic.String.Build("{0}\Custom\5882\{1}\Sender.txt",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sFile)
+	f.Intrinsic.File.Exists(v.Local.sFile,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx.Not)
+		f.Intrinsic.Control.CallSub("Write_Log","sMessage","Sender Email is not setup. Please set up your email or contact Administrator.")
+		f.Intrinsic.Control.CallSub("Unload")
+	f.Intrinsic.Control.EndIf
+	f.Intrinsic.File.File2String(v.Local.sFile,v.Local.sSender)
+	v.Local.sSender.Set(v.Local.sSender.Trim)
+	v.Local.sSender2.Set(v.Local.sSender)
+	
+	'Validate Sender email
+	f.Global.Messaging.IsAddressValid(v.Local.sSender,v.Local.bEmailAddressValid)
+	f.Intrinsic.Control.If(v.Local.bEmailAddressValid.Not)
+		f.Intrinsic.Control.CallSub("Write_Log","sMessage","Sender Email is not valid. Please set up your email or contact Administrator.")
+		f.Intrinsic.Control.CallSub("Unload")
+	f.Intrinsic.Control.EndIf
+	f.Intrinsic.String.Build("{0}*!*{1}",v.Local.sSender,"",v.Local.sSender)	
+	
+	'Get data
+	f.Intrinsic.Control.If(v.DataTable.EM.Exists)
+		f.Data.DataTable.Close("EM")
+	f.Intrinsic.Control.EndIf	
+	
+	'For testing
+	'v.Local.dYesterday.Set("08/31/2019")
+	f.Intrinsic.Date.DateAdd("D",-1,v.Ambient.Date,v.Local.dYesterday)
+	f.Intrinsic.String.Build("SELECT l.ORDER_NO,l.ORDER_SUFFIX,l.CUSTOMER,c.NAME_CUSTOMER,COALESCE(PART,'') AS PART ,'' As  DISPLAY_PART,LOCATION,ORDER_DESC,l.PCK_NO,DATE_SHIP,QTY_SHIPPED,LN_SHP_STAT,l.CUSTOMER_PART,h.CUSTOMER_PO,h.SALESPERSON,h.SHIP_VIA,h.SHIP_ID,h.TRACKING_NO, s.Email as Email2,'' as Email1,h.Carrier_CD+Cast(h.Srvc_Type As Char(3)) As CSRV ,'' as Carrier_Desc FROM V_SHIPMENT_LINES l JOIN V_SHIPMENT_HEADER h ON l.ORDER_NO = h.ORDER_NO AND l.ORDER_SUFFIX = h.ORDER_SUFFIX LEFT JOIN V_CUSTOMER_MASTER c ON l.CUSTOMER = c.CUSTOMER left join V_Customer_Sales s on l.Customer = s.Customer  WHERE QTY_SHIPPED <> 0 AND LN_SHP_STAT <> 0  and Date_Ship = '{0}' and h.customer = '114202' ORDER BY l.Customer,l.Order_No,l.Order_Suffix,DATE_SHIP",v.Local.dYesterday.PervasiveDate,v.Local.sSQL)
+	f.Data.DataTable.CreateFromSQL("EM","conx",v.Local.sSQL,True)
+	
+	F.Data.Dictionary.CreateFromSQL("dEmailOrdBillTo","conx","Select Order_No,Contact_Email from V_Order_Bill_To")
+	F.Data.Dictionary.SetDefaultReturn("dEmailOrdBillTo","")
+	f.Data.Datatable.FillFromDictionary("EM","dEmailOrdBillTo","Order_No","Email1")
+	f.Data.Dictionary.Close("dEmailOrdBillTo")
+	f.Data.DataTable.AddExpressionColumn("EM","Email","String","IIF(Trim([Email1]) = '',[Email2],[Email1])")
+	
+	
+	F.Data.Dictionary.CreateFromSQL("dLongDesc","conx","Select Carrier_CD+Cast(Srvc_Type As Char(3)) As CSRV,RTrim(Long_Desc) As Long_Desc From OE_Carrier;")
+	F.Data.Dictionary.SetDefaultReturn("dLongDesc","")
+	f.Data.Datatable.FillFromDictionary("EM","dLongDesc","CSRV","Carrier_Desc")
+	f.Data.Dictionary.Close("dLongDesc")
+	
+	f.Intrinsic.Control.If(v.DataTable.EM.RowCount,=,0)
+		f.Intrinsic.String.Build("No Shipment found for this date: {0}",v.Local.dYesterday.FormatMM/DD/YYYY,v.Local.sMsg)
+		f.Intrinsic.Control.CallSub("Write_Log","sMessage",v.Local.sMsg)
+		f.Intrinsic.Control.CallSub("Unload")
+	f.Intrinsic.Control.EndIf
+	
+	'Group by Customer
+	f.Data.DataView.Create("EM","dvEM")
+	f.Intrinsic.Control.If(v.DataTable.Cust.Exists)
+		f.Data.DataTable.Close("Cust")
+	f.Intrinsic.Control.EndIf
+	f.Data.DataView.ToDataTableDistinct("EM","dvEM","Cust","Customer*!*Order_No",True)
+	
+	f.Intrinsic.Control.For(v.Local.iCnt,0,v.DataTable.Cust.RowCount--,1)
+		f.Intrinsic.String.Build("Customer = '{0}' and Order_No = '{1}'",v.DataTable.Cust(v.Local.iCnt).Customer!FieldValString,v.DataTable.Cust(v.Local.iCnt).Order_No!FieldValString,v.Local.sFilter)
+		f.Data.DataView.SetFilter("EM","dvEM",v.Local.sFilter)
+		f.Data.DataView.SetSort("EM","dvEM","Customer,Order_No,Order_Suffix,DATE_SHIP")
+		
+		'Header Values
+		v.Local.sRecepient.set(v.DataView.EM!dvEM(0).Email!FieldValTrim)
+		f.Intrinsic.String.Replace(v.Local.sRecepient,";","@!@",v.Local.sRecepient)
+		v.Local.sOrder.set(v.DataView.EM!dvEM(0).Order_NO!FieldValString)
+		v.Local.dDateShip.set(v.DataView.EM!dvEM(0).Date_Ship!FieldValString)
+		v.Local.sPO.set(v.DataView.EM!dvEM(0).Customer_PO!FieldValTrim)
+		v.Local.sShipVia.set(v.DataView.EM!dvEM(0).Ship_Via!FieldValTrim)
+		v.Local.sCarrier.Set(v.DataView.EM!dvEM(0).Carrier_Desc!FieldValTrim)
+		v.Local.sTracking.set(v.DataView.EM!dvEM(0).Tracking_No!FieldValTrim)
+		v.Local.sCustomer.Set(v.DataView.EM!dvEM(0).Customer!FieldValTrim)
+		v.Local.sSuffix.Set(v.DataView.EM!dvEM(0).Order_Suffix!FieldValString)	
+		
+		'Reset data
+		v.Local.sReason.Set("")
+		v.Local.bValid.Set(True)
+		
+		f.Intrinsic.String.Split(v.Local.sRecepient,"@!@",v.Local.sMultiEmails)
+		f.Intrinsic.Control.For(v.Local.i3,0,v.Local.sMultiEmails.UBound,1)
+			'Validate Recepient email
+			f.Global.Messaging.IsAddressValid(v.Local.sMultiEmails(v.Local.i3),v.Local.bEmailAddressValid)
+			f.Intrinsic.Control.If(v.Local.bEmailAddressValid.Not)
+				v.Local.sReason.Set("Invalid/No Email")
+				v.Local.bValid.Set(False)
+			f.Intrinsic.Control.EndIf
+			v.Local.sHold.Set(v.Local.sMultiEmails(v.Local.i3).Trim)
+			v.Local.sMultiEmails(v.Local.i3).Set(v.Local.shold)
+		f.Intrinsic.Control.Next(v.Local.i3)
+		
+		f.Intrinsic.String.Join(v.Local.sMultiEmails,"@!@",v.Local.sRecepient)
+		f.Intrinsic.Control.If(v.Dictionary.CNEDict![v.Local.sCustomer],=,False)
+			v.Local.sReason.Set("No Need Email")
+			v.Local.bValid.Set(False)
+		f.Intrinsic.Control.EndIf
+		
+		'Get Subject
+		f.Intrinsic.String.Build("{0}\Custom\5882\{1}\Subject.txt",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sFile)
+		f.Intrinsic.File.Exists(v.Local.sFile,v.Local.bEx)
+		f.Intrinsic.Control.If(v.Local.bEx)
+			f.Intrinsic.File.File2String(v.Local.sFile,v.Local.sSubject)
+		f.Intrinsic.Control.Else
+			v.Local.sSubject.Set("ASN- Order %Salesorder%- Shipped on %DateShipped%- PO %Customer PO%")
+		f.Intrinsic.Control.EndIf
+		
+		f.Intrinsic.String.Replace(v.Local.sSubject,"%Salesorder%",v.Local.sOrder,v.Local.sSubject)
+		f.Intrinsic.String.Replace(v.Local.sSubject,"%DateShipped%",v.Local.dDateShip.FormatMM/DD/YYYY,v.Local.sSubject)
+		f.Intrinsic.String.Replace(v.Local.sSubject,"%Customer PO%",v.Local.sPO,v.Local.sSubject)		
+		
+		'Get Body
+		f.Intrinsic.String.Build("{0}\Custom\5882\{1}\Body.txt",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sFile)
+		f.Intrinsic.File.Exists(v.Local.sFile,v.Local.bEx)
+		f.Intrinsic.Control.If(v.Local.bEx)
+			f.Intrinsic.File.File2String(v.Local.sFile,v.Local.sBody)
+		f.Intrinsic.Control.Else
+			f.Intrinsic.String.Build("Thank you from Werk Brau, for your order it is on the way.{0}Sales Order: %Salesorder%{0}Ship Date: %DateShipped%{0}PO: %Customer PO%{0}Ship Via: %ShipVia%{0}Carrier: %Carrier%{0}Tracking: %Tracking Number%{0}Line:{0}%PN%  quantity: %Qty%",v.Ambient.NewLine,v.Local.sBody)
+		f.Intrinsic.Control.EndIf	
+		
+		f.Intrinsic.String.Split(v.Local.sBody,"%PN%",v.Local.sBody)
+		v.Local.sBody.Set(v.Local.sBody(0))		
+		f.Intrinsic.String.Replace(v.Local.sBody,"%Salesorder%",v.Local.sOrder,v.Local.sBody)
+		f.Intrinsic.String.Replace(v.Local.sBody,"%DateShipped%",v.Local.dDateShip.FormatMM/DD/YYYY,v.Local.sBody)
+		f.Intrinsic.String.Replace(v.Local.sBody,"%Customer PO%",v.Local.sPO,v.Local.sBody)	
+		f.Intrinsic.String.Replace(v.Local.sBody,"%ShipVia%",v.Local.sShipVia,v.Local.sBody)
+		f.Intrinsic.String.Replace(v.Local.sBody,"%Carrier%",v.Local.sCarrier,v.Local.sBody)
+		f.Intrinsic.String.Replace(v.Local.sBody,"%Tracking Number%",v.Local.sTracking,v.Local.sBody)
+		
+		f.Intrinsic.Control.For(v.Local.iInner,0,v.DataView.EM!dvEM.RowCount--,1)
+			f.Intrinsic.Control.If(v.DataView.EM!dvEM(v.Local.iInner).CUSTOMER_PART!FieldValTrim,<>,"")
+				v.Local.sPart.set(v.DataView.EM!dvEM(v.Local.iInner).CUSTOMER_PART!FieldValTrim)
+			f.Intrinsic.Control.Else
+				v.Local.sPart.set(v.DataView.EM!dvEM(v.Local.iInner).Part!FieldValTrim)
+			f.Intrinsic.Control.EndIf			
+			v.Local.sQty.set(v.DataView.EM!dvEM(v.Local.iInner).Qty_Shipped!FieldValTrim)
+			f.Intrinsic.Control.If(v.Local.iInner,=,0)
+				f.Intrinsic.String.Build("{0} quantity: {1}",v.Local.sPart,v.Local.sQty,v.Local.sPartDetail)
+			f.Intrinsic.Control.Else
+				f.Intrinsic.String.Build("{0}{1}{2} quantity: {3}",v.Local.sPartDetail,v.Ambient.NewLine,v.Local.sPart,v.Local.sQty,v.Local.sPartDetail)
+			f.Intrinsic.Control.EndIf			
+		f.Intrinsic.Control.Next(v.Local.iInner)
+		
+		f.Intrinsic.String.Build("{0}{1}",v.Local.sBody,v.Local.sPartDetail,v.Local.sBody)
+		
+		f.Intrinsic.Control.If(v.Local.bValid)
+			'Email
+			F.Global.Security.GetUserID(v.Caller.User,v.Caller.CompanyCode,v.Local.iUser)
+			'f.Intrinsic.String.Split(v.Local.sRecepient,"@!@",v.Local.sRecepient)			
+			'f.Intrinsic.Control.For(v.Local.i3,0,v.Local.sRecepient.UBound,1)
+				'F.Global.Messaging.QueueMessage(V.Caller.CompanyCode,V.Local.iUser,"ASN",v.Local.sSubject,V.Local.sSender,V.Local.sRecepient(v.Local.i3),v.Local.sBody)	
+			'f.Intrinsic.Control.Next(v.Local.i3)			
+			F.Global.Messaging.QueueMessage(V.Caller.CompanyCode,V.Local.iUser,"ASN",v.Local.sSubject,V.Local.sSender,V.Local.sRecepient,v.Local.sBody)	
+
+			'Write Database
+			f.Intrinsic.String.Build("Select * from GCG_5882_OE where Order_No = '{0}' and Order_Suffix = '{1}' and Customer = '{2}'",v.Local.sOrder,v.Local.sSuffix,v.Local.sCustomer,v.Local.sSQL)
+			f.ODBC.Connection!conx.ExecuteAndReturn(v.Local.sSQL,v.Local.sRet)
+			f.Intrinsic.Control.If(v.Ambient.ExecuteAndReturnEOF)
+				f.Intrinsic.String.Build("Insert into GCG_5882_OE (Order_No,Order_Suffix,Customer,Emailed) values ('{0}','{1}','{2}',1)",v.Local.sOrder,v.Local.sSuffix,v.Local.sCustomer,v.Local.sSQL)
+			f.Intrinsic.Control.Else
+				f.Intrinsic.String.Build("Update GCG_5882_OE set Emailed = 1 where Order_No = '{0}' and Order_Suffix = '{1}' and Customer = '{2}'",v.Local.sOrder,v.Local.sSuffix,v.Local.sCustomer,v.Local.sSQL)
+			f.Intrinsic.Control.EndIf
+			f.ODBC.Connection!conx.Execute(v.Local.sSQL)
+			
+			'Save to DB
+			f.Intrinsic.Control.For(v.Local.iInner,0,v.DataView.EM!dvEM.RowCount--,1)
+				'Get Part and Qty
+				v.Local.sPart.set(v.DataView.EM!dvEM(v.Local.iInner).Part!FieldValTrim)	
+				v.Local.sCustomerPart.set(v.DataView.EM!dvEM(v.Local.iInner).CUSTOMER_PART!FieldValTrim)	
+				v.Local.sQty.set(v.DataView.EM!dvEM(v.Local.iInner).Qty_Shipped!FieldValTrim)
+				f.Intrinsic.Control.If(v.Local.iInner,=,0)
+					f.Intrinsic.String.Build("{0} quantity: {1}",v.Local.sPart,v.Local.sQty,v.Local.sPartDetail)
+				f.Intrinsic.Control.Else
+					f.Intrinsic.String.Build("{0}{1}{2} quantity: {3}",v.Local.sPartDetail,v.Ambient.NewLine,v.Local.sPart,v.Local.sQty,v.Local.sPartDetail)
+				f.Intrinsic.Control.EndIf
+				f.Intrinsic.String.Build("Insert into GCG_5882_EmailHist (TimeNum,TimeString,Order_No,Order_Suffix,Customer,Email,Part,Cust_Part,Qty_Shipped,Sender,UserID,Status,Carrier_Desc) values ('{0}','{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}','{10}','{11}','{12}')",v.Ambient.Now.FormatYYYYMMDDHHNNSS,v.Ambient.Now,v.Local.sOrder,v.Local.sSuffix,v.Local.sCustomer,v.Local.sRecepient,v.Local.sPart.PSQLFriendly,v.Local.sCustomerPart.PSQLFriendly,v.Local.sQty,v.Local.sSender2,v.Caller.User,"Sent",v.Local.sCarrier.PSQLFriendly,v.Local.sSQL)
+				f.ODBC.Connection!conx.Execute(v.Local.sSQL)				
+			f.Intrinsic.Control.Next(v.Local.iInner)
+			'Build String for log
+			f.Intrinsic.String.Build("{1}{0}{0}{2}: Emailed with details:{0}From: {3}{0}To: {4}{0}Subject: {5}{0}Body:{0}{6}{7}",v.Ambient.NewLine,v.Global.sLog,v.Ambient.Now,v.Local.sSender2,v.Local.sRecepient,v.Local.sSubject,v.Local.sBody,v.Local.sPartDetail,v.Global.sLog)			
+		f.Intrinsic.Control.Else
+			'Build String for log
+			f.Intrinsic.Control.For(v.Local.iInner,0,v.DataView.EM!dvEM.RowCount--,1)
+				'Get Part and Qty
+				v.Local.sPart.set(v.DataView.EM!dvEM(v.Local.iInner).Part!FieldValTrim)	
+				v.Local.sCustomerPart.set(v.DataView.EM!dvEM(v.Local.iInner).CUSTOMER_PART!FieldValTrim)	
+				v.Local.sQty.set(v.DataView.EM!dvEM(v.Local.iInner).Qty_Shipped!FieldValTrim)
+				f.Intrinsic.Control.If(v.Local.iInner,=,0)
+					f.Intrinsic.String.Build("{0} quantity: {1}",v.Local.sPart,v.Local.sQty,v.Local.sPartDetail)
+				f.Intrinsic.Control.Else
+					f.Intrinsic.String.Build("{0}{1}{2} quantity: {3}",v.Local.sPartDetail,v.Ambient.NewLine,v.Local.sPart,v.Local.sQty,v.Local.sPartDetail)
+				f.Intrinsic.Control.EndIf
+				f.Intrinsic.String.Build("Insert into GCG_5882_EmailHist (TimeNum,TimeString,Order_No,Order_Suffix,Customer,Email,Part,Cust_Part,Qty_Shipped,Sender,UserID,Status,Carrier_Desc) values ('{0}','{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}','{10}','{11}','{12}')",v.Ambient.Now.FormatYYYYMMDDHHNNSS,v.Ambient.Now,v.Local.sOrder,v.Local.sSuffix,v.Local.sCustomer,v.Local.sRecepient,v.Local.sPart.PSQLFriendly,v.Local.sCustomerPart.PSQLFriendly,v.Local.sQty,v.Local.sSender2,v.Caller.User,v.Local.sReason,v.Local.sCarrier.PSQLFriendly,v.Local.sSQL)
+				f.ODBC.Connection!conx.Execute(v.Local.sSQL)
+			f.Intrinsic.Control.Next(v.Local.iInner)
+			f.Intrinsic.String.Build("{1}{0}{0}{2}: ******** Cannot email for reason ***{7}*** with details:{0}From: {3}{0}To: {4}{0}Subject: {5}{0}Body:{0}{6}{8}",v.Ambient.NewLine,v.Global.sLog,v.Ambient.Now,v.Local.sSender2,v.Local.sRecepient,v.Local.sSubject,v.Local.sBody,v.Local.sReason,v.Local.sPartDetail,v.Global.sLog)			
+		f.Intrinsic.Control.EndIf
+		
+	f.Intrinsic.Control.Next(v.Local.iCnt)
+	f.ODBC.Connection!conx.Close
+
+	f.Intrinsic.Control.CallSub("Write_Log","sMessage","")
+	f.Intrinsic.Control.CallSub("Unload")
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: GCG_5882_Email.g2u {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	f.Intrinsic.Control.CallSub("Write_Log","sMessage",v.Local.sError)
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.Process.End
